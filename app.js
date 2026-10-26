@@ -357,6 +357,15 @@ class DubaiCustomsApp {
   // DOM Binding & Navigation
   // ==========================================================================
   bindDOM() {
+    // Mobile Drawer Navigation
+    const mobileToggle = document.getElementById("mobile-menu-toggle");
+    const sidebarClose = document.getElementById("sidebar-close-btn");
+    const sidebarOverlay = document.getElementById("sidebar-overlay");
+
+    mobileToggle?.addEventListener("click", () => this.toggleMobileSidebar());
+    sidebarClose?.addEventListener("click", () => this.closeMobileSidebar());
+    sidebarOverlay?.addEventListener("click", () => this.closeMobileSidebar());
+
     // Navigation items
     document.querySelectorAll(".nav-item").forEach(btn => {
       btn.addEventListener("click", () => {
@@ -504,9 +513,10 @@ class DubaiCustomsApp {
       }
     });
 
-    // ESC key closes modals
+    // ESC key closes modals & mobile drawer
     window.addEventListener("keydown", (e) => {
       if (e.key === "Escape") {
+        this.closeMobileSidebar();
         this.closeNewRecordModal();
         this.closeOutgoingModal();
         this.closeViewBoeModal();
@@ -514,8 +524,33 @@ class DubaiCustomsApp {
     });
   }
 
+  toggleMobileSidebar() {
+    const sidebar = document.getElementById("app-sidebar");
+    const isOpen = sidebar?.classList.contains("sidebar-open");
+    if (isOpen) {
+      this.closeMobileSidebar();
+    } else {
+      this.openMobileSidebar();
+    }
+  }
+
+  openMobileSidebar() {
+    document.getElementById("app-sidebar")?.classList.add("sidebar-open");
+    document.getElementById("sidebar-overlay")?.classList.add("sidebar-open");
+    document.body.classList.add("menu-opened");
+  }
+
+  closeMobileSidebar() {
+    document.getElementById("app-sidebar")?.classList.remove("sidebar-open");
+    document.getElementById("sidebar-overlay")?.classList.remove("sidebar-open");
+    document.body.classList.remove("menu-opened");
+  }
+
   switchView(viewName) {
     this.currentView = viewName;
+
+    // Auto-close mobile drawer when navigating
+    this.closeMobileSidebar();
 
     // Update active nav item
     document.querySelectorAll(".nav-item").forEach(item => {
