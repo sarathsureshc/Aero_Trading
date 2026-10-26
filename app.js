@@ -317,6 +317,10 @@ class DubaiCustomsApp {
     this.currentView = "dashboard";
     this.data = null;
 
+    // Pending parsed data awaiting user confirmation
+    this._pendingIncoming = null;
+    this._pendingOutgoing = null;
+
     this.init();
   }
 
@@ -388,25 +392,41 @@ class DubaiCustomsApp {
     document.getElementById("link-all-inventory")?.addEventListener("click", () => this.switchView("inventory"));
     document.getElementById("link-open-register")?.addEventListener("click", () => this.switchView("incoming"));
 
-    // Modal: New Record
-    document.getElementById("btn-open-new-record")?.addEventListener("click", () => this.openNewRecordModal());
-    document.getElementById("btn-incoming-new-manual")?.addEventListener("click", () => this.openNewRecordModal());
-    document.getElementById("btn-inventory-add-line")?.addEventListener("click", () => this.openNewRecordModal());
+    // Navigation & PDF Upload triggers (manual entry replaced by automated PDF parse)
+    const handleIncomingUpload = () => {
+      this.switchView("incoming");
+      document.getElementById("declaration-file-input")?.click();
+    };
+
+    const handleOutgoingUpload = () => {
+      this.switchView("outgoing");
+      document.getElementById("outgoing-file-input")?.click();
+    };
+
+    document.getElementById("btn-process-outgoing-open")?.addEventListener("click", handleOutgoingUpload);
+
     document.getElementById("btn-close-modal")?.addEventListener("click", () => this.closeNewRecordModal());
     document.getElementById("btn-cancel-modal")?.addEventListener("click", () => this.closeNewRecordModal());
-    document.getElementById("new-record-form")?.addEventListener("submit", (e) => this.handleSaveNewRecord(e));
-    document.getElementById("btn-add-form-item-line")?.addEventListener("click", () => this.addNewItemRow());
-
-    // Modal: Process Outgoing Deduction
-    document.getElementById("btn-process-outgoing-open")?.addEventListener("click", () => this.openOutgoingModal());
     document.getElementById("btn-close-outgoing-modal")?.addEventListener("click", () => this.closeOutgoingModal());
     document.getElementById("btn-cancel-outgoing-modal")?.addEventListener("click", () => this.closeOutgoingModal());
+    document.getElementById("new-record-form")?.addEventListener("submit", (e) => this.handleSaveNewRecord(e));
     document.getElementById("outgoing-deduct-form")?.addEventListener("submit", (e) => this.handleProcessOutgoing(e));
+    document.getElementById("btn-add-form-item-line")?.addEventListener("click", () => this.addNewItemRow());
     document.getElementById("out-source-select")?.addEventListener("change", (e) => this.updateSelectedBalanceCard(e.target.value));
 
     // Modal: View Declaration Details
     document.getElementById("btn-close-view-boe-modal")?.addEventListener("click", () => this.closeViewBoeModal());
     document.getElementById("btn-close-view-boe-footer")?.addEventListener("click", () => this.closeViewBoeModal());
+
+    // Modal: Incoming PDF Confirmation
+    document.getElementById("btn-close-incoming-confirm")?.addEventListener("click", () => this.closeIncomingConfirmModal());
+    document.getElementById("btn-cancel-incoming-confirm")?.addEventListener("click", () => this.closeIncomingConfirmModal());
+    document.getElementById("btn-confirm-incoming")?.addEventListener("click", () => this.handleConfirmIncoming());
+
+    // Modal: Outgoing PDF Confirmation
+    document.getElementById("btn-close-outgoing-confirm")?.addEventListener("click", () => this.closeOutgoingConfirmModal());
+    document.getElementById("btn-cancel-outgoing-confirm")?.addEventListener("click", () => this.closeOutgoingConfirmModal());
+    document.getElementById("btn-confirm-outgoing")?.addEventListener("click", () => this.handleConfirmOutgoing());
 
     // PDF Upload triggers
     const fileInput = document.getElementById("declaration-file-input");
@@ -432,20 +452,19 @@ class DubaiCustomsApp {
       }
     });
 
-    // Drag and drop onto dropzone
     dropzone?.addEventListener("dragover", (e) => {
       e.preventDefault();
-      dropzone.style.borderColor = "#2563eb";
-      dropzone.style.background = "#e0f2fe";
+      dropzone.style.borderColor = "var(--orange)";
+      dropzone.style.background = "#ffe8b5";
     });
     dropzone?.addEventListener("dragleave", () => {
-      dropzone.style.borderColor = "#93c5fd";
-      dropzone.style.background = "#f0f7ff";
+      dropzone.style.borderColor = "";
+      dropzone.style.background = "";
     });
     dropzone?.addEventListener("drop", (e) => {
       e.preventDefault();
-      dropzone.style.borderColor = "#93c5fd";
-      dropzone.style.background = "#f0f7ff";
+      dropzone.style.borderColor = "";
+      dropzone.style.background = "";
       if (e.dataTransfer.files.length > 0) {
         this.simulateDubaiPdfExtraction(e.dataTransfer.files[0].name);
       }
@@ -477,17 +496,17 @@ class DubaiCustomsApp {
 
     outDropzone?.addEventListener("dragover", (e) => {
       e.preventDefault();
-      outDropzone.style.borderColor = "#2563eb";
-      outDropzone.style.background = "#e0f2fe";
+      outDropzone.style.borderColor = "var(--orange)";
+      outDropzone.style.background = "#ffe8b5";
     });
     outDropzone?.addEventListener("dragleave", () => {
-      outDropzone.style.borderColor = "#93c5fd";
-      outDropzone.style.background = "#f0f7ff";
+      outDropzone.style.borderColor = "";
+      outDropzone.style.background = "";
     });
     outDropzone?.addEventListener("drop", (e) => {
       e.preventDefault();
-      outDropzone.style.borderColor = "#93c5fd";
-      outDropzone.style.background = "#f0f7ff";
+      outDropzone.style.borderColor = "";
+      outDropzone.style.background = "";
       if (e.dataTransfer.files.length > 0) {
         this.simulateOutgoingPdfDeduction(e.dataTransfer.files[0].name);
       }
@@ -517,8 +536,8 @@ class DubaiCustomsApp {
     window.addEventListener("keydown", (e) => {
       if (e.key === "Escape") {
         this.closeMobileSidebar();
-        this.closeNewRecordModal();
-        this.closeOutgoingModal();
+        this.closeIncomingConfirmModal();
+        this.closeOutgoingConfirmModal();
         this.closeViewBoeModal();
       }
     });
@@ -1031,38 +1050,14 @@ class DubaiCustomsApp {
   // MODAL: + New Record (Incoming BOE Registration)
   // ==========================================================================
   openNewRecordModal() {
-    const modal = document.getElementById("new-record-modal");
-    document.getElementById("new-record-form").reset();
-
-    // Default today's date
-    document.getElementById("input-dec-date").value = new Date().toISOString().slice(0, 10);
-    document.getElementById("input-location").value = "LOC: JEBEL ALI";
-
-    // Reset items table to 1 row
-    const tbody = document.getElementById("modal-items-tbody");
-    tbody.innerHTML = `
-      <tr class="item-input-row">
-        <td class="row-num">1</td>
-        <td><input type="text" class="item-hs font-mono" required placeholder="84091000"></td>
-        <td><input type="text" class="item-goods" required placeholder="FILTER HEAT EXCHANGER"></td>
-        <td>
-          <select class="item-uom">
-            <option value="KG">KG</option>
-            <option value="PCS">PCS</option>
-          </select>
-        </td>
-        <td><input type="number" step="any" class="item-gross" placeholder="51.5"></td>
-        <td><input type="number" step="any" min="0.01" class="item-qty" required placeholder="51.5"></td>
-        <td><button type="button" class="btn-remove-row" title="Remove">&times;</button></td>
-      </tr>
-    `;
-    this.bindRowRemovers();
-
-    modal.style.display = "flex";
+    this.switchView("incoming");
+    this.showToast("Manual form entry is disabled. Please upload a Dubai Customs Declaration PDF.", "info");
+    document.getElementById("declaration-file-input")?.click();
   }
 
   closeNewRecordModal() {
-    document.getElementById("new-record-modal").style.display = "none";
+    const modal = document.getElementById("new-record-modal");
+    if (modal) modal.style.display = "none";
   }
 
   addNewItemRow(prefill = null) {
@@ -1194,121 +1189,368 @@ class DubaiCustomsApp {
   }
 
   // ==========================================================================
-  // AI Extraction Simulator (Dubai Customs PDF)
+  // AI Extraction Simulator — INCOMING (Dubai Customs PDF)
+  // Opens a read-only confirmation modal with all parsed data for review.
   // ==========================================================================
   simulateDubaiPdfExtraction(fileName = "Dubai_Customs_Declaration.pdf") {
     this.showToast(`Parsing "${fileName}" via Dubai Customs OCR Engine...`, "info");
 
     setTimeout(() => {
-      this.openNewRecordModal();
+      // Build the parsed data object (in production this comes from your AI/OCR)
+      const parsed = {
+        fileName,
+        decNo:       "000-00000000-00",
+        portType:    "LAND",
+        decType:     "TRANSIT",
+        decTypeFull: "FZ Transit Between Dubai Based Free Zones",
+        decDate:     "2026-01-01",
+        grossWeight: 3583.00,
+        location:    "LOC: JEBEL ALI",
+        importer:    "AE-1000001 - SAMPLE AEROTECH FZE (F-0000)",
+        exportedTo:  "AE-1000002 - SAMPLE TRADING DWC-LLC",
+        status:      "Released",
+        lines: [
+          { hsCode: "84091000", goods: "FILTER HEAT EXCHANGER",       uom: "KG",  grossWeight: 51.5, originalQty: 51.5, origin: "US" },
+          { hsCode: "88073000", goods: "AIRCRAFT PARTS",               uom: "KG",  grossWeight: 22.3, originalQty: 22.3, origin: "US" },
+          { hsCode: "88073000", goods: "FMGEC SPARE PARTS",            uom: "KG",  grossWeight: 19.0, originalQty: 19.0, origin: "US" },
+          { hsCode: "85073000", goods: "CONNECTOR ADAPTOR SHUM",       uom: "KG",  grossWeight: 0.9,  originalQty: 0.9,  origin: "DE" },
+          { hsCode: "83100080", goods: "AIRCRAFT SPARE PARTS",         uom: "KG",  grossWeight: 0.7,  originalQty: 0.7,  origin: "FR" }
+        ]
+      };
 
-      // Pre-fill header data matching the exact attached PDF:
-      document.getElementById("input-dec-no").value = "000-00000000-00";
-      document.getElementById("input-port-type").value = "LAND";
-      document.getElementById("input-dec-type").value = "TRANSIT";
-      document.getElementById("input-dec-date").value = "2026-01-01";
-      document.getElementById("input-gross-weight").value = "3583.00";
-      document.getElementById("input-location").value = "LOC: JEBEL ALI";
-      document.getElementById("input-importer").value = "AE-1000001 - SAMPLE AEROTECH FZE (F-0000)";
-      document.getElementById("input-exported-to").value = "AE-1000002 - SAMPLE TRADING DWC-LLC";
-
-      // Populate all 5 product lines extracted from the demo PDF:
-      const tbody = document.getElementById("modal-items-tbody");
-      tbody.innerHTML = "";
-
-      const sampleLines = [
-        { hsCode: "84091000", goods: "FILTER HEAT EXCHANGER", uom: "KG", grossWeight: 51.5, originalQty: 51.5 },
-        { hsCode: "88073000", goods: "AIRCRAFT PARTS", uom: "KG", grossWeight: 22.3, originalQty: 22.3 },
-        { hsCode: "88073000", goods: "FMGEC SPARE PARTS", uom: "KG", grossWeight: 19.0, originalQty: 19.0 },
-        { hsCode: "85073000", goods: "CONNECTOR ADAPTOR SHUM", uom: "KG", grossWeight: 0.9, originalQty: 0.9 },
-        { hsCode: "83100080", goods: "AIRCRAFT SPARE PARTS", uom: "KG", grossWeight: 0.7, originalQty: 0.7 }
-      ];
-
-      sampleLines.forEach(item => {
-        this.addNewItemRow(item);
-      });
-
-      this.showToast(`Extracted 5 line items from UAE Dubai Customs Declaration form!`, "success");
-    }, 400);
+      this.openIncomingConfirmModal(parsed);
+    }, 500);
   }
 
   // ==========================================================================
-  // AI Extraction Simulator (Outgoing Customs Declaration Form)
+  // MODAL: Incoming PDF Confirmation — open, close, confirm
+  // ==========================================================================
+  openIncomingConfirmModal(parsed) {
+    this._pendingIncoming = parsed;
+    const modal = document.getElementById("incoming-confirm-modal");
+
+    // File name badge
+    const fileEl = document.getElementById("inc-conf-filename");
+    if (fileEl) fileEl.textContent = parsed.fileName;
+
+    // Header meta grid
+    const grid = document.getElementById("inc-conf-header-grid");
+    if (grid) {
+      grid.innerHTML = `
+        <div class="parse-meta-field">
+          <span class="parse-meta-label">BOE / Declaration No.</span>
+          <span class="parse-meta-value accent">${this.escapeHtml(parsed.decNo)}</span>
+        </div>
+        <div class="parse-meta-field">
+          <span class="parse-meta-label">Port Type</span>
+          <span class="parse-meta-value">${this.escapeHtml(parsed.portType)}</span>
+        </div>
+        <div class="parse-meta-field">
+          <span class="parse-meta-label">Declaration Type</span>
+          <span class="parse-meta-value">${this.escapeHtml(parsed.decType)}</span>
+        </div>
+        <div class="parse-meta-field">
+          <span class="parse-meta-label">Declaration Date</span>
+          <span class="parse-meta-value">${this.escapeHtml(parsed.decDate)}</span>
+        </div>
+        <div class="parse-meta-field">
+          <span class="parse-meta-label">Gross Weight</span>
+          <span class="parse-meta-value">${parsed.grossWeight.toLocaleString()} kg</span>
+        </div>
+        <div class="parse-meta-field">
+          <span class="parse-meta-label">Location / Port</span>
+          <span class="parse-meta-value">${this.escapeHtml(parsed.location)}</span>
+        </div>
+        <div class="parse-meta-field span-2">
+          <span class="parse-meta-label">Importer / Exporter</span>
+          <span class="parse-meta-value">${this.escapeHtml(parsed.importer)}</span>
+        </div>
+        <div class="parse-meta-field span-2">
+          <span class="parse-meta-label">Exported To / Consignee</span>
+          <span class="parse-meta-value">${this.escapeHtml(parsed.exportedTo || "—")}</span>
+        </div>
+      `;
+    }
+
+    // Line items table
+    const countEl = document.getElementById("inc-conf-lines-count");
+    if (countEl) countEl.textContent = parsed.lines.length;
+
+    const tbody = document.getElementById("inc-conf-lines-tbody");
+    if (tbody) {
+      tbody.innerHTML = "";
+      parsed.lines.forEach((line, idx) => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td><strong>${idx + 1}</strong></td>
+          <td><span style="font-weight:700;color:var(--prussian-blue)">${this.escapeHtml(line.hsCode)}</span></td>
+          <td><span style="font-weight:600">${this.escapeHtml(line.goods)}</span></td>
+          <td><span style="font-weight:700">${line.uom}</span></td>
+          <td>${line.grossWeight ?? "—"}</td>
+          <td><strong>${line.originalQty} ${line.uom}</strong></td>
+          <td>${this.escapeHtml(line.origin || "—")}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    // Duplicate detection
+    const isDuplicate = !!this.data.incomingDeclarations.find(d => d.decNo === parsed.decNo);
+    const warnEl = document.getElementById("inc-conf-duplicate-warn");
+    const confirmBtn = document.getElementById("btn-confirm-incoming");
+    if (warnEl) warnEl.style.display = isDuplicate ? "flex" : "none";
+    if (confirmBtn) {
+      confirmBtn.disabled = isDuplicate;
+      confirmBtn.style.opacity = isDuplicate ? "0.45" : "1";
+    }
+
+    modal.style.display = "flex";
+  }
+
+  closeIncomingConfirmModal() {
+    document.getElementById("incoming-confirm-modal").style.display = "none";
+    this._pendingIncoming = null;
+  }
+
+  handleConfirmIncoming() {
+    const parsed = this._pendingIncoming;
+    if (!parsed) return;
+
+    // Guard: duplicate check
+    if (this.data.incomingDeclarations.find(d => d.decNo === parsed.decNo)) {
+      this.showToast(`Declaration ${parsed.decNo} is already registered.`, "error");
+      return;
+    }
+
+    const lines = parsed.lines.map((l, idx) => ({
+      id:          `line-${Date.now()}-${idx}`,
+      hsCode:      l.hsCode,
+      goods:       l.goods,
+      uom:         l.uom,
+      grossWeight: l.grossWeight,
+      originalQty: l.originalQty,
+      deductedQty: 0,
+      origin:      l.origin || "AE"
+    }));
+
+    const newBoe = {
+      id:          "boe-" + Date.now(),
+      decNo:       parsed.decNo,
+      portType:    parsed.portType,
+      decType:     parsed.decType,
+      decTypeFull: parsed.decTypeFull || `${parsed.portType} ${parsed.decType}`,
+      decDate:     parsed.decDate,
+      grossWeight: parsed.grossWeight,
+      importer:    parsed.importer,
+      exportedTo:  parsed.exportedTo,
+      location:    parsed.location,
+      status:      parsed.status || "Released",
+      uploadDate:  new Date().toISOString().replace("T", " ").slice(0, 16),
+      lines
+    };
+
+    this.data.incomingDeclarations.unshift(newBoe);
+    this.addAuditLog(
+      "Declaration PDF Uploaded & Parsed",
+      parsed.decNo,
+      `Confirmed ${lines.length} line items (${parsed.grossWeight.toLocaleString()} kg) from ${parsed.fileName}`
+    );
+
+    this.saveState();
+    this.closeIncomingConfirmModal();
+    this.render();
+    this.showToast(`Declaration ${parsed.decNo} registered — ${lines.length} items added to inventory!`, "success");
+  }
+
+  // ==========================================================================
+  // AI Extraction Simulator — OUTGOING (Customs Clearance / Dispatch PDF)
+  // Opens a read-only confirmation modal with all parsed data for review.
   // ==========================================================================
   simulateOutgoingPdfDeduction(fileName = "Outgoing_Declaration_Form.pdf") {
     this.showToast(`Parsing "${fileName}" for automated outgoing stock deduction...`, "info");
 
     setTimeout(() => {
-      // Find source BOE line that has available balance
       const allLines = this.getAllInventoryLines();
-      const availableLine = allLines.find(i => i.remainingQty >= 10 && i.sourceBoe === "000-00000000-00") || allLines.find(i => i.remainingQty > 0);
+      const availableLine =
+        allLines.find(i => i.remainingQty >= 10 && i.sourceBoe === "000-00000000-00") ||
+        allLines.find(i => i.remainingQty > 0);
 
       if (!availableLine) {
-        this.showToast("No available stock lines found in Source BOEs to deduct.", "warning");
+        this.showToast("No available stock lines found in any Source BOE.", "warning");
         return;
       }
 
-      const deductQty = Math.min(20, Math.floor(availableLine.remainingQty / 2) || 1);
-      const dispatchRef = `OUT-EXP-2026-${Math.floor(100 + Math.random() * 900)}`;
-      const destination = "Emirates Engineering Center, Dubai Airport";
+      const deductQty    = Math.min(20, Math.floor(availableLine.remainingQty / 2) || 1);
+      const dispatchRef  = `OUT-EXP-2026-${Math.floor(100 + Math.random() * 900)}`;
+      const destination  = "Emirates Engineering Center, Dubai Airport";
       const movementDate = new Date().toISOString().slice(0, 10);
+      const newRemaining = availableLine.remainingQty - deductQty;
+      const isOverdraw   = deductQty > availableLine.remainingQty;
 
-      // Pre-fill the outgoing modal with the parsed data from the uploaded form
-      this.openOutgoingModal(availableLine);
-      document.getElementById("out-dispatch-ref").value = dispatchRef;
-      document.getElementById("out-destination").value = destination;
-      document.getElementById("out-movement-date").value = movementDate;
-      document.getElementById("out-quantity").value = deductQty;
-      document.getElementById("out-notes").value = `Auto-extracted from ${fileName} (Source BOE: ${availableLine.sourceBoe})`;
+      const parsed = {
+        fileName,
+        dispatchRef,
+        movementDate,
+        destination,
+        notes:         `Auto-extracted from ${fileName} (Source BOE: ${availableLine.sourceBoe})`,
+        sourceBoe:     availableLine.sourceBoe,
+        lineId:        availableLine.id,
+        hsCode:        availableLine.hsCode,
+        goods:         availableLine.goods,
+        uom:           availableLine.uom,
+        deductQty,
+        availableQty:  availableLine.remainingQty,
+        newRemaining,
+        isOverdraw
+      };
 
-      this.showToast(`Extracted Outgoing Clearance ${dispatchRef} for ${deductQty} ${availableLine.uom} of HS ${availableLine.hsCode}! Review and confirm deduction.`, "success");
-    }, 450);
+      this.openOutgoingConfirmModal(parsed);
+    }, 500);
+  }
+
+  // ==========================================================================
+  // MODAL: Outgoing PDF Confirmation — open, close, confirm
+  // ==========================================================================
+  openOutgoingConfirmModal(parsed) {
+    this._pendingOutgoing = parsed;
+    const modal = document.getElementById("outgoing-confirm-modal");
+
+    // File badge
+    const fileEl = document.getElementById("out-conf-filename");
+    if (fileEl) fileEl.textContent = parsed.fileName;
+
+    // Movement header grid
+    const grid = document.getElementById("out-conf-header-grid");
+    if (grid) {
+      grid.innerHTML = `
+        <div class="parse-meta-field">
+          <span class="parse-meta-label">Dispatch Ref / Exit BOE</span>
+          <span class="parse-meta-value accent">${this.escapeHtml(parsed.dispatchRef)}</span>
+        </div>
+        <div class="parse-meta-field">
+          <span class="parse-meta-label">Movement Date</span>
+          <span class="parse-meta-value">${this.escapeHtml(parsed.movementDate)}</span>
+        </div>
+        <div class="parse-meta-field">
+          <span class="parse-meta-label">Source BOE</span>
+          <span class="parse-meta-value accent">${this.escapeHtml(parsed.sourceBoe)}</span>
+        </div>
+        <div class="parse-meta-field">
+          <span class="parse-meta-label">HS Code</span>
+          <span class="parse-meta-value">${this.escapeHtml(parsed.hsCode)}</span>
+        </div>
+        <div class="parse-meta-field">
+          <span class="parse-meta-label">Goods Description</span>
+          <span class="parse-meta-value">${this.escapeHtml(parsed.goods)}</span>
+        </div>
+        <div class="parse-meta-field">
+          <span class="parse-meta-label">Destination / Consignee</span>
+          <span class="parse-meta-value">${this.escapeHtml(parsed.destination)}</span>
+        </div>
+      `;
+    }
+
+    // Stock impact card
+    const impactCard = document.getElementById("out-conf-stock-card");
+    if (impactCard) {
+      const remainClass = parsed.newRemaining <= 0 ? "warn" : parsed.newRemaining <= parsed.availableQty * 0.2 ? "warn" : "remain";
+      impactCard.innerHTML = `
+        <div class="stock-impact-col">
+          <span class="stock-impact-label">Currently Available</span>
+          <span class="stock-impact-value">${parsed.availableQty} <small style="font-size:0.7rem">${parsed.uom}</small></span>
+          <span class="stock-impact-sub">BOE: ${this.escapeHtml(parsed.sourceBoe)}</span>
+        </div>
+        <div class="stock-impact-col">
+          <span class="stock-impact-label">Quantity to Deduct</span>
+          <span class="stock-impact-value deduct">− ${parsed.deductQty} <small style="font-size:0.7rem">${parsed.uom}</small></span>
+          <span class="stock-impact-sub">HS: ${this.escapeHtml(parsed.hsCode)}</span>
+        </div>
+        <div class="stock-impact-col">
+          <span class="stock-impact-label">Balance After Deduction</span>
+          <span class="stock-impact-value ${remainClass}">${Math.max(0, parsed.newRemaining)} <small style="font-size:0.7rem">${parsed.uom}</small></span>
+          <span class="stock-impact-sub">${parsed.newRemaining <= 0 ? "Will be fully depleted" : parsed.newRemaining <= parsed.availableQty * 0.2 ? "Low stock after" : "Remaining balance"}</span>
+        </div>
+      `;
+    }
+
+    // Overdraw warning
+    const warnEl = document.getElementById("out-conf-overdraw-warn");
+    const confirmBtn = document.getElementById("btn-confirm-outgoing");
+    if (warnEl) warnEl.style.display = parsed.isOverdraw ? "flex" : "none";
+    if (confirmBtn) {
+      confirmBtn.disabled = parsed.isOverdraw;
+      confirmBtn.style.opacity = parsed.isOverdraw ? "0.45" : "1";
+    }
+
+    modal.style.display = "flex";
+  }
+
+  closeOutgoingConfirmModal() {
+    document.getElementById("outgoing-confirm-modal").style.display = "none";
+    this._pendingOutgoing = null;
+  }
+
+  handleConfirmOutgoing() {
+    const parsed = this._pendingOutgoing;
+    if (!parsed) return;
+
+    // Find source BOE and line
+    const boe = this.data.incomingDeclarations.find(d => d.decNo === parsed.sourceBoe);
+    if (!boe) { this.showToast("Source BOE not found in database.", "error"); return; }
+
+    const line = boe.lines.find(l => l.id === parsed.lineId);
+    if (!line) { this.showToast("Source HS Code line not found.", "error"); return; }
+
+    const currentRemaining = Math.max(0, line.originalQty - (line.deductedQty || 0));
+    if (parsed.deductQty > currentRemaining) {
+      this.showToast(`Cannot deduct ${parsed.deductQty} ${line.uom}. Only ${currentRemaining} ${line.uom} available.`, "error");
+      return;
+    }
+
+    // Commit deduction
+    line.deductedQty = (line.deductedQty || 0) + parsed.deductQty;
+    const newRemaining = line.originalQty - line.deductedQty;
+
+    const movement = {
+      id:          "out-" + Date.now(),
+      dispatchRef: parsed.dispatchRef,
+      sourceBoe:   parsed.sourceBoe,
+      lineId:      line.id,
+      hsCode:      line.hsCode,
+      goods:       line.goods,
+      destination: parsed.destination,
+      deductedQty: parsed.deductQty,
+      uom:         line.uom,
+      date:        parsed.movementDate,
+      status:      "Cleared",
+      notes:       parsed.notes || `PDF-confirmed deduction from ${parsed.sourceBoe}`
+    };
+
+    this.data.outgoingMovements.unshift(movement);
+    this.addAuditLog(
+      "Outgoing HS Stock Deducted",
+      parsed.dispatchRef,
+      `Deducted ${parsed.deductQty} ${line.uom} of HS ${line.hsCode} from BOE ${parsed.sourceBoe} (Remaining: ${newRemaining} ${line.uom})`
+    );
+
+    this.saveState();
+    this.closeOutgoingConfirmModal();
+    this.render();
+    this.showToast(`Deducted ${parsed.deductQty} ${line.uom} from ${parsed.sourceBoe}. Balance: ${newRemaining} ${line.uom}`, "success");
   }
 
   // ==========================================================================
   // MODAL: Process Outgoing Declaration (Stock Deduction)
   // ==========================================================================
   openOutgoingModal(preselectedItem = null) {
-    const modal = document.getElementById("outgoing-deduct-modal");
-    document.getElementById("outgoing-deduct-form").reset();
-
-    // Default today
-    document.getElementById("out-movement-date").value = new Date().toISOString().slice(0, 10);
-    document.getElementById("out-dispatch-ref").value = `OUT-DWC-2026-${Math.floor(100 + Math.random() * 900)}`;
-
-    // Populate source select with every available line item
-    const select = document.getElementById("out-source-select");
-    select.innerHTML = `<option value="">-- Choose available source inventory balance --</option>`;
-
-    const allLines = this.getAllInventoryLines();
-    const availableLines = allLines.filter(i => i.remainingQty > 0);
-
-    if (availableLines.length === 0) {
-      this.showToast("No stock available in any Source BOE to deduct.", "warning");
-      return;
-    }
-
-    availableLines.forEach(item => {
-      const opt = document.createElement("option");
-      opt.value = `${item.sourceBoe}|${item.id}`;
-      opt.textContent = `[BOE: ${item.sourceBoe}] HS: ${item.hsCode} — ${item.goods} (Avail: ${item.remainingQty} ${item.uom})`;
-      if (preselectedItem && preselectedItem.id === item.id && preselectedItem.sourceBoe === item.sourceBoe) {
-        opt.selected = true;
-      }
-      select.appendChild(opt);
-    });
-
-    if (preselectedItem) {
-      this.updateSelectedBalanceCard(`${preselectedItem.sourceBoe}|${preselectedItem.id}`);
-    } else {
-      document.getElementById("selected-balance-box").style.display = "none";
-    }
-
-    modal.style.display = "flex";
+    this.switchView("outgoing");
+    this.showToast("Manual deduction is disabled. Please upload an Outgoing Clearance / Exit PDF.", "info");
+    document.getElementById("outgoing-file-input")?.click();
   }
 
   closeOutgoingModal() {
-    document.getElementById("outgoing-deduct-modal").style.display = "none";
+    const modal = document.getElementById("outgoing-deduct-modal");
+    if (modal) modal.style.display = "none";
   }
 
   updateSelectedBalanceCard(val) {
