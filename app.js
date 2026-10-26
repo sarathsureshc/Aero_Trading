@@ -442,6 +442,48 @@ class DubaiCustomsApp {
       }
     });
 
+    // Outgoing PDF Upload triggers
+    const outFileInput = document.getElementById("outgoing-file-input");
+    const outDropzone = document.getElementById("outgoing-dropzone");
+    const outUploadBtn = document.getElementById("btn-outgoing-upload-pdf");
+    const outSamplePdfBtn = document.getElementById("btn-load-sample-outgoing-pdf");
+
+    outUploadBtn?.addEventListener("click", () => outFileInput?.click());
+    outDropzone?.addEventListener("click", (e) => {
+      if (e.target !== outSamplePdfBtn && !outSamplePdfBtn?.contains(e.target)) {
+        outFileInput?.click();
+      }
+    });
+
+    outSamplePdfBtn?.addEventListener("click", (e) => {
+      e.stopPropagation();
+      this.simulateOutgoingPdfDeduction();
+    });
+
+    outFileInput?.addEventListener("change", (e) => {
+      if (e.target.files.length > 0) {
+        this.simulateOutgoingPdfDeduction(e.target.files[0].name);
+      }
+    });
+
+    outDropzone?.addEventListener("dragover", (e) => {
+      e.preventDefault();
+      outDropzone.style.borderColor = "#2563eb";
+      outDropzone.style.background = "#e0f2fe";
+    });
+    outDropzone?.addEventListener("dragleave", () => {
+      outDropzone.style.borderColor = "#93c5fd";
+      outDropzone.style.background = "#f0f7ff";
+    });
+    outDropzone?.addEventListener("drop", (e) => {
+      e.preventDefault();
+      outDropzone.style.borderColor = "#93c5fd";
+      outDropzone.style.background = "#f0f7ff";
+      if (e.dataTransfer.files.length > 0) {
+        this.simulateOutgoingPdfDeduction(e.dataTransfer.files[0].name);
+      }
+    });
+
     // Table search inputs
     document.getElementById("search-incoming-input")?.addEventListener("input", (e) => this.renderIncomingTable(e.target.value));
     document.getElementById("search-outgoing-input")?.addEventListener("input", (e) => this.renderOutgoingTable(e.target.value));
@@ -899,18 +941,7 @@ class DubaiCustomsApp {
         <td>
           ${statusPill}
         </td>
-        <td>
-          <button class="btn-sm btn-primary-blue btn-quick-deduct" data-id="${item.id}" ${item.remainingQty <= 0 ? "disabled style='opacity:0.5; cursor:not-allowed;'" : ""}>
-            Deduct
-          </button>
-        </td>
       `;
-
-      if (item.remainingQty > 0) {
-        tr.querySelector(".btn-quick-deduct")?.addEventListener("click", () => {
-          this.openOutgoingModal(item);
-        });
-      }
 
       tbody.appendChild(tr);
     });
@@ -1164,6 +1195,39 @@ class DubaiCustomsApp {
 
       this.showToast(`Extracted 5 line items from UAE Dubai Customs Declaration form!`, "success");
     }, 400);
+  }
+
+  // ==========================================================================
+  // AI Extraction Simulator (Outgoing Customs Declaration Form)
+  // ==========================================================================
+  simulateOutgoingPdfDeduction(fileName = "Outgoing_Declaration_Form.pdf") {
+    this.showToast(`Parsing "${fileName}" for automated outgoing stock deduction...`, "info");
+
+    setTimeout(() => {
+      // Find source BOE line that has available balance
+      const allLines = this.getAllInventoryLines();
+      const availableLine = allLines.find(i => i.remainingQty >= 10 && i.sourceBoe === "000-00000000-00") || allLines.find(i => i.remainingQty > 0);
+
+      if (!availableLine) {
+        this.showToast("No available stock lines found in Source BOEs to deduct.", "warning");
+        return;
+      }
+
+      const deductQty = Math.min(20, Math.floor(availableLine.remainingQty / 2) || 1);
+      const dispatchRef = `OUT-EXP-2026-${Math.floor(100 + Math.random() * 900)}`;
+      const destination = "Emirates Engineering Center, Dubai Airport";
+      const movementDate = new Date().toISOString().slice(0, 10);
+
+      // Pre-fill the outgoing modal with the parsed data from the uploaded form
+      this.openOutgoingModal(availableLine);
+      document.getElementById("out-dispatch-ref").value = dispatchRef;
+      document.getElementById("out-destination").value = destination;
+      document.getElementById("out-movement-date").value = movementDate;
+      document.getElementById("out-quantity").value = deductQty;
+      document.getElementById("out-notes").value = `Auto-extracted from ${fileName} (Source BOE: ${availableLine.sourceBoe})`;
+
+      this.showToast(`Extracted Outgoing Clearance ${dispatchRef} for ${deductQty} ${availableLine.uom} of HS ${availableLine.hsCode}! Review and confirm deduction.`, "success");
+    }, 450);
   }
 
   // ==========================================================================
