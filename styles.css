@@ -2,7 +2,7 @@
    Dubai Customs Control & Logistics Inventory Management Portal
    Styles, Design System, Layout & Responsive Framework
    Color Theme: Black / Prussian Blue / Orange / Alabaster Grey / White
-   Fonts: Arsenal (Display · Numbers) · Raleway (UI)
+   Fonts: Geist (Variable Sans) · Geist Mono (Variable Monospace)
    ========================================================================== */
 
 :root {
@@ -72,10 +72,10 @@
   --radius-lg:   10px;
   --radius-full: 9999px;
 
-  /* ── Typography ─────────────────────────────────────────────────────────── */
-  --font-sans:    'Raleway', 'Segoe UI', system-ui, sans-serif;
-  --font-display: 'Arsenal', 'Raleway', sans-serif;
-  --font-mono:    'Arsenal', 'Raleway', sans-serif;
+  /* ── Typography (Geist Variable Family) ─────────────────────────────────── */
+  --font-sans:    'Geist', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, system-ui, sans-serif;
+  --font-display: 'Geist', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, system-ui, sans-serif;
+  --font-mono:    'Geist Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 }
 
 /* ── Reset ───────────────────────────────────────────────────────────────── */
@@ -92,6 +92,7 @@ body {
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  font-feature-settings: 'cv01' 1, 'cv02' 1;
   min-height: 100vh;
 }
 
@@ -488,8 +489,9 @@ body {
 .page-h1 {
   font-size: 1.65rem;
   font-weight: 700;
+  font-variation-settings: 'wght' 700;
   color: var(--text-primary);
-  letter-spacing: -0.01em;
+  letter-spacing: -0.025em;
   font-family: var(--font-display);
 }
 
@@ -636,10 +638,12 @@ body {
 .kpi-mini-val {
   font-size: 1.75rem;
   font-weight: 700;
+  font-variation-settings: 'wght' 720;
   color: var(--text-primary);
   line-height: 1.05;
-  letter-spacing: -0.01em;
+  letter-spacing: -0.035em;
   font-family: var(--font-display);
+  font-feature-settings: 'tnum' 1;
 }
 
 .kpi-mini-sub {
@@ -915,6 +919,8 @@ body {
 
 .font-mono {
   font-family: var(--font-mono) !important;
+  font-feature-settings: 'tnum' 1, 'zero' 1;
+  letter-spacing: -0.015em;
 }
 
 /* ── Status Badges ───────────────────────────────────────────────────────── */
