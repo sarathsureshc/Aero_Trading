@@ -1,0 +1,873 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Dubai Customs Control & Logistics Inventory Management Portal - Live view of declarations and source-linked inventory balances.">
+  <title>Customs Control — Logistics Dashboard</title>
+  
+  <!-- Modern Typography (Plus Jakarta Sans & JetBrains Mono) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <div class="layout-container">
+    
+    <!-- LEFT SIDEBAR -->
+    <aside class="sidebar" id="app-sidebar">
+      <div class="sidebar-top">
+        <div class="sidebar-brand">
+          <div class="brand-avatar">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z"/>
+            </svg>
+          </div>
+          <div class="brand-info">
+            <span class="brand-name">LOGISTICS</span>
+            <span class="brand-sub">CUSTOMS CONTROL</span>
+          </div>
+        </div>
+
+        <div class="sidebar-section-label">WORKSPACE</div>
+
+        <nav class="sidebar-nav">
+          <button class="nav-item active" data-view="dashboard" id="nav-btn-dashboard">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="3" width="7" height="7" rx="1"></rect>
+              <rect x="14" y="3" width="7" height="7" rx="1"></rect>
+              <rect x="14" y="14" width="7" height="7" rx="1"></rect>
+              <rect x="3" y="14" width="7" height="7" rx="1"></rect>
+            </svg>
+            <span>Dashboard</span>
+          </button>
+
+          <button class="nav-item" data-view="incoming" id="nav-btn-incoming">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="12" y1="19" x2="12" y2="5"></line>
+              <polyline points="5 12 12 5 19 12"></polyline>
+            </svg>
+            <span>Incoming BOE Register</span>
+          </button>
+
+          <button class="nav-item" data-view="outgoing" id="nav-btn-outgoing">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="12" y1="5" x2="12" y2="19"></line>
+              <polyline points="19 12 12 19 5 12"></polyline>
+            </svg>
+            <span>Outgoing HS Summary</span>
+          </button>
+
+          <button class="nav-item" data-view="inventory" id="nav-btn-inventory">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="2" y="4" width="20" height="16" rx="2"></rect>
+              <line x1="2" y1="10" x2="22" y2="10"></line>
+              <line x1="10" y1="4" x2="10" y2="20"></line>
+            </svg>
+            <span>Customs Stock Inventory</span>
+          </button>
+
+          <button class="nav-item" data-view="admin" id="nav-btn-admin">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+            </svg>
+            <span>Admin & Access log</span>
+          </button>
+        </nav>
+      </div>
+
+      <!-- SIDEBAR BOTTOM -->
+      <div class="sidebar-bottom">
+        <div class="database-card">
+          <div class="db-card-icon">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"></circle>
+              <line x1="12" y1="16" x2="12" y2="12"></line>
+              <line x1="12" y1="8" x2="12.01" y2="8"></line>
+            </svg>
+          </div>
+          <div class="db-card-text">
+            <span class="db-title">Live database</span>
+            <span class="db-desc">Records are stored in the project database and survive refreshes</span>
+          </div>
+        </div>
+
+        <!-- Live Database Card -->
+      </div>
+    </aside>
+
+    <!-- MAIN RIGHT CONTENT WRAPPER -->
+    <div class="main-wrapper">
+      
+      <!-- TOP NAVIGATION BAR -->
+      <header class="top-header">
+        <div class="breadcrumb">
+          <span class="crumb-parent">Operations</span>
+          <span class="crumb-sep">/</span>
+          <span class="crumb-current" id="current-breadcrumb">Dashboard</span>
+        </div>
+
+        <div class="header-right-actions">
+          <button class="btn-demo-data" id="btn-demo-data" title="Reload authentic UAE Dubai Customs Demo Data">
+            Demo Data
+          </button>
+          <div class="live-database-pill">
+            <span class="dot-live"></span>
+            <span>LIVE DATABASE</span>
+          </div>
+          <div class="badge-count" id="header-records-count">30</div>
+        </div>
+      </header>
+
+      <!-- ========================================== -->
+      <!-- VIEW 1: DASHBOARD (Active View) -->
+      <!-- ========================================== -->
+      <main class="page-content" id="view-dashboard">
+        
+        <!-- DASHBOARD TITLE HEADER -->
+        <div class="page-title-row">
+          <div class="title-meta">
+            <div class="badge-tag-row">
+              <span class="tag-label">OPERATIONS OVERVIEW</span>
+              <span class="tag-live">LIVE DATA</span>
+            </div>
+            <h1 class="page-h1">Customs dashboard</h1>
+            <p class="page-sub">A live view of declarations and source-linked inventory balances.</p>
+          </div>
+          <div class="title-actions">
+            <button class="btn-primary-blue" id="btn-open-new-record">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+              </svg>
+              <span>+ New record</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- 6 KPI METRICS STATS IN A ROW -->
+        <div class="kpi-row-6">
+          
+          <div class="kpi-mini-card">
+            <div class="kpi-mini-header">
+              <span class="kpi-mini-title">Incoming declarations</span>
+              <div class="kpi-badge-icon badge-indigo">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <line x1="12" y1="19" x2="12" y2="5"></line>
+                  <polyline points="5 12 12 5 19 12"></polyline>
+                </svg>
+              </div>
+            </div>
+            <div class="kpi-mini-val" id="kpi-inc-decl">7</div>
+            <div class="kpi-mini-sub">BOE / declaration numbers</div>
+          </div>
+
+          <div class="kpi-mini-card">
+            <div class="kpi-mini-header">
+              <span class="kpi-mini-title">Outgoing declarations</span>
+              <div class="kpi-badge-icon badge-purple">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <line x1="12" y1="5" x2="12" y2="19"></line>
+                  <polyline points="19 12 12 19 5 12"></polyline>
+                </svg>
+              </div>
+            </div>
+            <div class="kpi-mini-val" id="kpi-out-decl">4</div>
+            <div class="kpi-mini-sub">Unique processed BOEs</div>
+          </div>
+
+          <div class="kpi-mini-card">
+            <div class="kpi-mini-header">
+              <span class="kpi-mini-title">Incoming line items</span>
+              <div class="kpi-badge-icon badge-teal">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <line x1="8" y1="6" x2="21" y2="6"></line>
+                  <line x1="8" y1="12" x2="21" y2="12"></line>
+                  <line x1="8" y1="18" x2="21" y2="18"></line>
+                  <line x1="3" y1="6" x2="3.01" y2="6"></line>
+                  <line x1="3" y1="12" x2="3.01" y2="12"></line>
+                  <line x1="3" y1="18" x2="3.01" y2="18"></line>
+                </svg>
+              </div>
+            </div>
+            <div class="kpi-mini-val" id="kpi-inc-lines">21</div>
+            <div class="kpi-mini-sub">Across incoming BOEs</div>
+          </div>
+
+          <div class="kpi-mini-card">
+            <div class="kpi-mini-header">
+              <span class="kpi-mini-title">Outgoing line items</span>
+              <div class="kpi-badge-icon badge-orange">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                  <polyline points="14 2 14 8 20 8"></polyline>
+                  <line x1="16" y1="13" x2="8" y2="13"></line>
+                  <line x1="16" y1="17" x2="8" y2="17"></line>
+                </svg>
+              </div>
+            </div>
+            <div class="kpi-mini-val" id="kpi-out-lines">4</div>
+            <div class="kpi-mini-sub">Processed movements</div>
+          </div>
+
+          <div class="kpi-mini-card">
+            <div class="kpi-mini-header">
+              <span class="kpi-mini-title">Pending review</span>
+              <div class="kpi-badge-icon badge-amber">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <line x1="12" y1="8" x2="12" y2="12"></line>
+                  <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                </svg>
+              </div>
+            </div>
+            <div class="kpi-mini-val" id="kpi-pending-rev">4</div>
+            <div class="kpi-mini-sub">Needs attention</div>
+          </div>
+
+          <div class="kpi-mini-card">
+            <div class="kpi-mini-header">
+              <span class="kpi-mini-title">Completed documents</span>
+              <div class="kpi-badge-icon badge-emerald">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+              </div>
+            </div>
+            <div class="kpi-mini-val" id="kpi-completed-docs">7</div>
+            <div class="kpi-mini-sub">Reviewed / processed</div>
+          </div>
+
+        </div>
+
+        <!-- MIDDLE ROW: DECLARATION ACTIVITY CHART + STOCK BY UNIT -->
+        <div class="dashboard-grid-2">
+          
+          <!-- LEFT: DECLARATION ACTIVITY BAR CHART -->
+          <div class="white-card">
+            <div class="card-head-row">
+              <div>
+                <h3 class="card-heading">Declaration activity</h3>
+                <span class="card-subheading">Incoming and outgoing by month</span>
+              </div>
+              <div class="chart-legend-wrap">
+                <span class="sample-badge">2026 - LIVE</span>
+                <div class="legend-pills">
+                  <span class="legend-dot-item"><span class="dot-chart dot-blue"></span> Incoming</span>
+                  <span class="legend-dot-item"><span class="dot-chart dot-light-blue"></span> Outgoing</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="bar-chart-container" id="bar-chart-container">
+              <!-- Rendered via JS -->
+            </div>
+          </div>
+
+          <!-- RIGHT: STOCK BY UNIT -->
+          <div class="white-card">
+            <div class="card-head-row">
+              <div>
+                <h3 class="card-heading">Stock by unit</h3>
+                <span class="card-subheading">Remaining quantity, separated by UOM</span>
+              </div>
+              <button class="link-btn" id="link-view-stock">View stock ↗</button>
+            </div>
+
+            <div class="uom-progress-list">
+              <!-- PCS Item -->
+              <div class="uom-item">
+                <div class="uom-header">
+                  <span class="uom-name">PCS</span>
+                  <span class="uom-total" id="uom-pcs-total">93 PCS</span>
+                </div>
+                <div class="uom-progress-bar">
+                  <div class="uom-bar-fill fill-blue" id="uom-pcs-fill" style="width: 32%;"></div>
+                </div>
+                <div class="uom-footer">
+                  <span id="uom-pcs-sub">7 source BOE balances</span>
+                </div>
+              </div>
+
+              <!-- KG Item -->
+              <div class="uom-item">
+                <div class="uom-header">
+                  <span class="uom-name">KG</span>
+                  <span class="uom-total" id="uom-kg-total">4,404 KG</span>
+                </div>
+                <div class="uom-progress-bar">
+                  <div class="uom-bar-fill fill-teal" id="uom-kg-fill" style="width: 78%;"></div>
+                </div>
+                <div class="uom-footer">
+                  <span id="uom-kg-sub">12 source BOE balances</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="card-bottom-note">Different units are never combined.</div>
+          </div>
+
+        </div>
+
+        <!-- LOWER ROW: CURRENT CUSTOMS INVENTORY + INVENTORY ALERTS -->
+        <div class="dashboard-grid-2">
+          
+          <!-- LEFT: CURRENT CUSTOMS INVENTORY TABLE -->
+          <div class="white-card">
+            <div class="card-head-row">
+              <div>
+                <h3 class="card-heading">Current customs inventory</h3>
+                <span class="card-subheading">Calculated from incoming lines and processed movements</span>
+              </div>
+              <button class="link-btn" id="link-all-inventory">All inventory ↗</button>
+            </div>
+
+            <div class="table-compact-wrap">
+              <table class="inventory-dash-table">
+                <thead>
+                  <tr>
+                    <th>HS CODE / GOODS</th>
+                    <th>SOURCE BOE</th>
+                    <th>UOM</th>
+                    <th>REMAINING</th>
+                    <th>STATUS</th>
+                  </tr>
+                </thead>
+                <tbody id="dash-inventory-tbody">
+                  <!-- Populated by JS -->
+                </tbody>
+              </table>
+            </div>
+
+            <div class="table-footer-meta" id="dash-table-meta">
+              Showing 5 of 21 source-linked balances &bull; Live database records
+            </div>
+          </div>
+
+          <!-- RIGHT: INVENTORY ALERTS -->
+          <div class="white-card">
+            <div class="card-head-row">
+              <div>
+                <h3 class="card-heading">Inventory alerts</h3>
+                <span class="card-subheading">Exceptions to review</span>
+              </div>
+              <span class="alert-counter-badge" id="alerts-badge-count">5</span>
+            </div>
+
+            <div class="alerts-list" id="alerts-list-container">
+              <!-- Populated by JS -->
+            </div>
+
+            <div class="card-bottom-note">Warnings calculated from live stock records.</div>
+          </div>
+
+        </div>
+
+        <!-- RECENTLY UPLOADED DOCUMENTS -->
+        <div class="white-card">
+          <div class="card-head-row">
+            <div>
+              <h3 class="card-heading">Recently uploaded documents</h3>
+              <span class="card-subheading">Bills of Entry and clearance manifests</span>
+            </div>
+            <button class="link-btn" id="link-open-register">Open register ↗</button>
+          </div>
+
+          <div class="table-compact-wrap">
+            <table class="inventory-dash-table">
+              <thead>
+                <tr>
+                  <th>DOCUMENT ID / REFERENCE</th>
+                  <th>DECLARATION TYPE</th>
+                  <th>LINES COUNT</th>
+                  <th>UPLOAD DATE</th>
+                  <th>STATUS</th>
+                  <th>ACTIONS</th>
+                </tr>
+              </thead>
+              <tbody id="recent-docs-tbody">
+                <!-- Populated by JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </main>
+
+      <!-- ========================================== -->
+      <!-- VIEW 2: INCOMING BOE REGISTER -->
+      <!-- ========================================== -->
+      <main class="page-content" id="view-incoming" style="display: none;">
+        <div class="page-title-row">
+          <div class="title-meta">
+            <div class="badge-tag-row">
+              <span class="tag-label">IMPORT OPERATIONS</span>
+              <span class="tag-live">DUBAI CUSTOMS</span>
+            </div>
+            <h1 class="page-h1">Incoming BOE Register</h1>
+            <p class="page-sub">Review declarations and their item-level customs lines. Upload declaration PDF or type manually.</p>
+          </div>
+          <div class="title-actions">
+            <button class="btn-primary-blue" id="btn-incoming-upload-pdf">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="17 8 12 3 7 8"></polyline>
+                <line x1="12" y1="3" x2="12" y2="15"></line>
+              </svg>
+              <span>+ Upload Declaration PDF</span>
+            </button>
+            <button class="btn-secondary-white" id="btn-incoming-new-manual">+ Manual BOE</button>
+          </div>
+        </div>
+
+        <!-- PDF Upload Dropzone Card -->
+        <div class="white-card upload-banner-card" id="pdf-upload-banner">
+          <div class="upload-dropzone" id="pdf-dropzone">
+            <div class="dropzone-icon">
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                <polyline points="14 2 14 8 20 8"></polyline>
+                <line x1="12" y1="18" x2="12" y2="12"></line>
+                <polyline points="9 15 12 12 15 15"></polyline>
+              </svg>
+            </div>
+            <div class="dropzone-text">
+              <h4>Drop Dubai Customs Declaration PDF here, or <span class="text-blue">browse file</span></h4>
+              <p>AI extracts Port Type, Dec No, Dec Type, Date, Importer, and all HS line items automatically.</p>
+            </div>
+            <input type="file" id="declaration-file-input" accept=".pdf,.png,.jpg,.jpeg" style="display: none;">
+            <button class="btn-sm btn-primary-blue" id="btn-load-sample-pdf">
+              <span>Load Attached Dubai Customs PDF Demo</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="white-card">
+          <div class="table-toolbar">
+            <input type="text" id="search-incoming-input" class="search-field" placeholder="Search by BOE number, importer, or document...">
+            <div class="toolbar-stats">Total: <strong id="incoming-count">7</strong> declarations registered</div>
+          </div>
+          <div class="table-compact-wrap">
+            <table class="inventory-dash-table">
+              <thead>
+                <tr>
+                  <th>BOE NUMBER / REF</th>
+                  <th>PORT &amp; DEC TYPE</th>
+                  <th>IMPORTER / EXPORTER</th>
+                  <th>DEC DATE</th>
+                  <th>ITEMS</th>
+                  <th>GROSS WEIGHT</th>
+                  <th>STATUS</th>
+                  <th>ACTION</th>
+                </tr>
+              </thead>
+              <tbody id="incoming-table-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </main>
+
+      <!-- ========================================== -->
+      <!-- VIEW 3: OUTGOING HS SUMMARY -->
+      <!-- ========================================== -->
+      <main class="page-content" id="view-outgoing" style="display: none;">
+        <div class="page-title-row">
+          <div class="title-meta">
+            <div class="badge-tag-row">
+              <span class="tag-label">EXPORT & DISPATCH</span>
+              <span class="tag-live">STOCK DEDUCTION</span>
+            </div>
+            <h1 class="page-h1">Outgoing HS Summary</h1>
+            <p class="page-sub">Outgoing quantities must match their exact source BOE before deduction. Deducts stock server-side.</p>
+          </div>
+          <div class="title-actions">
+            <button class="btn-primary-blue" id="btn-process-outgoing-open">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+              </svg>
+              <span>+ Process Outgoing Goods</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="info-callout-box">
+          <div class="callout-icon">ℹ️</div>
+          <div class="callout-content">
+            <strong>Exact Source BOE Allocation:</strong> Every outgoing line item requires selecting the exact incoming Source BOE and HS Code. The corresponding quantity is deducted from the live balance. Overdraws are prevented.
+          </div>
+        </div>
+
+        <div class="white-card">
+          <div class="table-toolbar">
+            <input type="text" id="search-outgoing-input" class="search-field" placeholder="Search outgoing clearance by ref, HS code, or destination...">
+            <div class="toolbar-stats">Total: <strong id="outgoing-count">4</strong> processed movements</div>
+          </div>
+          <div class="table-compact-wrap">
+            <table class="inventory-dash-table">
+              <thead>
+                <tr>
+                  <th>DISPATCH REF</th>
+                  <th>SOURCE BOE</th>
+                  <th>HS CODE &amp; DESCRIPTION</th>
+                  <th>DESTINATION / BUYER</th>
+                  <th>DEDUCTED QTY</th>
+                  <th>UOM</th>
+                  <th>DATE</th>
+                  <th>STATUS</th>
+                </tr>
+              </thead>
+              <tbody id="outgoing-table-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </main>
+
+      <!-- ========================================== -->
+      <!-- VIEW 4: CUSTOMS STOCK INVENTORY (Full View) -->
+      <!-- ========================================== -->
+      <main class="page-content" id="view-inventory" style="display: none;">
+        <div class="page-title-row">
+          <div class="title-meta">
+            <div class="badge-tag-row">
+              <span class="tag-label">WAREHOUSE BOND</span>
+              <span class="tag-live">SOURCE-LINKED BALANCES</span>
+            </div>
+            <h1 class="page-h1">Customs Stock Inventory</h1>
+            <p class="page-sub">Balances stay separate by incoming BOE, HS code, and original UOM. Different units are never combined.</p>
+          </div>
+          <div class="title-actions">
+            <button class="btn-secondary-white" id="btn-export-inventory-csv">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="7 10 12 15 17 10"></polyline>
+                <line x1="12" y1="15" x2="12" y2="3"></line>
+              </svg>
+              <span>Export CSV</span>
+            </button>
+            <button class="btn-primary-blue" id="btn-inventory-add-line">+ New Declaration Line</button>
+          </div>
+        </div>
+
+        <div class="white-card">
+          <div class="table-toolbar">
+            <input type="text" id="search-inventory-input" class="search-field" placeholder="Search by HS Code, Description, or Source BOE...">
+            <div class="filter-actions">
+              <select id="uom-filter" class="select-field" title="Filter by Unit of Measure">
+                <option value="all">All Units (PCS &amp; KG)</option>
+                <option value="PCS">Only PCS</option>
+                <option value="KG">Only KG</option>
+              </select>
+              <select id="stock-status-filter" class="select-field" title="Filter by Status">
+                <option value="all">All Statuses</option>
+                <option value="Available">Available Only</option>
+                <option value="Low Stock">Low Stock Warnings</option>
+                <option value="Depleted">Depleted (0 remaining)</option>
+              </select>
+            </div>
+          </div>
+          <div class="table-compact-wrap">
+            <table class="inventory-dash-table">
+              <thead>
+                <tr>
+                  <th>HS CODE / DESCRIPTION</th>
+                  <th>SOURCE BOE</th>
+                  <th>PORT / LOCATION</th>
+                  <th>UOM</th>
+                  <th>ORIGINAL QTY</th>
+                  <th>DEDUCTED</th>
+                  <th>REMAINING</th>
+                  <th>STATUS</th>
+                  <th>ACTION</th>
+                </tr>
+              </thead>
+              <tbody id="inventory-full-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </main>
+
+      <!-- ========================================== -->
+      <!-- VIEW 5: ADMIN & ACCESS LOG -->
+      <!-- ========================================== -->
+      <main class="page-content" id="view-admin" style="display: none;">
+        <div class="page-title-row">
+          <div class="title-meta">
+            <div class="badge-tag-row">
+              <span class="tag-label">SECURITY & AUDIT</span>
+            </div>
+            <h1 class="page-h1">Admin & Access Log</h1>
+            <p class="page-sub">Audit trail of logins, declaration entries, customs approvals, and stock modifications.</p>
+          </div>
+          <div class="title-actions">
+            <button class="btn-secondary-white" id="btn-clear-audit">Clear Log</button>
+          </div>
+        </div>
+
+        <div class="white-card">
+          <div class="table-compact-wrap">
+            <table class="inventory-dash-table">
+              <thead>
+                <tr>
+                  <th>TIMESTAMP</th>
+                  <th>OPERATOR</th>
+                  <th>ACTION / EVENT</th>
+                  <th>TARGET RECORD / REF</th>
+                  <th>DELTA / DETAILS</th>
+                  <th>SEVERITY / STATUS</th>
+                </tr>
+              </thead>
+              <tbody id="audit-table-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </main>
+
+      <!-- FOOTER BADGE -->
+      <footer class="app-footer-bar">
+        <div class="net-badge">
+          <span class="net-icon">✳</span> Powered by Netlify
+        </div>
+        <div class="footer-copy">
+          UAE Customs &bull; Dubai Customs Logistics Control System
+        </div>
+      </footer>
+
+    </div>
+  </div>
+
+  <!-- ======================================================== -->
+  <!-- MODAL: + NEW RECORD (Add Customs Declaration / Line) -->
+  <!-- ======================================================== -->
+  <div class="modal-backdrop" id="new-record-modal" style="display: none;">
+    <div class="modal-card modal-lg">
+      <div class="modal-header">
+        <div class="modal-title-wrap">
+          <h3 class="modal-title" id="modal-record-title">New Customs Declaration Record</h3>
+          <p class="modal-sub">Register incoming declaration headers and line items to stock.</p>
+        </div>
+        <button class="modal-close" id="btn-close-modal">&times;</button>
+      </div>
+
+      <form id="new-record-form" class="modal-form">
+        
+        <!-- Header Info Row -->
+        <div class="form-section-title">Declaration Header Information</div>
+        <div class="form-row-3">
+          <div class="form-group">
+            <label for="input-dec-no">Declaration / BOE No <span class="req">*</span></label>
+            <input type="text" id="input-dec-no" required placeholder="e.g. 000-00000000-00" class="font-mono">
+          </div>
+          <div class="form-group">
+            <label for="input-port-type">Port Type <span class="req">*</span></label>
+            <select id="input-port-type" required>
+              <option value="LAND">LAND</option>
+              <option value="SEA">SEA</option>
+              <option value="AIR">AIR</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="input-dec-type">Declaration Type <span class="req">*</span></label>
+            <select id="input-dec-type" required>
+              <option value="TRANSIT">TRANSIT (FZ Transit)</option>
+              <option value="IMPORT">IMPORT (Direct Import)</option>
+              <option value="EXPORT">EXPORT (Free Zone Export)</option>
+              <option value="TRANSFER">WAREHOUSE TRANSFER</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-row-3">
+          <div class="form-group">
+            <label for="input-dec-date">Declaration Date <span class="req">*</span></label>
+            <input type="date" id="input-dec-date" required>
+          </div>
+          <div class="form-group">
+            <label for="input-gross-weight">Gross Weight (kg) <span class="req">*</span></label>
+            <input type="number" step="0.01" id="input-gross-weight" required placeholder="3583.00">
+          </div>
+          <div class="form-group">
+            <label for="input-location">Location / Port</label>
+            <input type="text" id="input-location" placeholder="e.g. LOC: JEBEL ALI" value="LOC: JEBEL ALI">
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="input-importer">Importer / Exporter <span class="req">*</span></label>
+            <input type="text" id="input-importer" required placeholder="e.g. AE-1000001 - SAMPLE AEROTECH FZE">
+          </div>
+          <div class="form-group">
+            <label for="input-exported-to">Exported To / Consignee</label>
+            <input type="text" id="input-exported-to" placeholder="e.g. AE-1000002 - SAMPLE TRADING DWC-LLC">
+          </div>
+        </div>
+
+        <!-- Product Table Lines Section -->
+        <div class="form-section-title-row">
+          <span class="form-section-title">Declaration Product Items / Goods</span>
+          <button type="button" class="btn-sm btn-secondary-white" id="btn-add-form-item-line">+ Add Another Item</button>
+        </div>
+
+        <div class="modal-items-table-wrap">
+          <table class="modal-items-table" id="modal-items-table">
+            <thead>
+              <tr>
+                <th style="width: 28px;">#</th>
+                <th style="width: 140px;">HS Code *</th>
+                <th>Goods Description *</th>
+                <th style="width: 85px;">UOM *</th>
+                <th style="width: 100px;">Gross (kg)</th>
+                <th style="width: 100px;">Quantity *</th>
+                <th style="width: 40px;"></th>
+              </tr>
+            </thead>
+            <tbody id="modal-items-tbody">
+              <!-- Item Row 1 -->
+              <tr class="item-input-row">
+                <td class="row-num">1</td>
+                <td><input type="text" class="item-hs font-mono" required placeholder="84091000"></td>
+                <td><input type="text" class="item-goods" required placeholder="FILTER HEAT EXCHANGER"></td>
+                <td>
+                  <select class="item-uom">
+                    <option value="KG">KG</option>
+                    <option value="PCS">PCS</option>
+                  </select>
+                </td>
+                <td><input type="number" step="any" class="item-gross" placeholder="51.5"></td>
+                <td><input type="number" step="any" min="0.01" class="item-qty" required placeholder="51.5"></td>
+                <td><button type="button" class="btn-remove-row" title="Remove">&times;</button></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn-cancel" id="btn-cancel-modal">Cancel</button>
+          <button type="submit" class="btn-primary-blue">Save &amp; Link to Inventory</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ======================================================== -->
+  <!-- MODAL: PROCESS OUTGOING DECLARATION DEDUCTION -->
+  <!-- ======================================================== -->
+  <div class="modal-backdrop" id="outgoing-deduct-modal" style="display: none;">
+    <div class="modal-card modal-md">
+      <div class="modal-header">
+        <div class="modal-title-wrap">
+          <h3 class="modal-title">Process Outgoing Goods Declaration</h3>
+          <p class="modal-sub">Deduct outgoing stock from specified Source BOE and HS Code.</p>
+        </div>
+        <button class="modal-close" id="btn-close-outgoing-modal">&times;</button>
+      </div>
+
+      <form id="outgoing-deduct-form" class="modal-form">
+        
+        <div class="form-row">
+          <div class="form-group">
+            <label for="out-dispatch-ref">Outgoing Dispatch Ref / Exit BOE <span class="req">*</span></label>
+            <input type="text" id="out-dispatch-ref" required placeholder="e.g. OUT-DWC-2026-004" class="font-mono">
+          </div>
+          <div class="form-group">
+            <label for="out-movement-date">Movement Date <span class="req">*</span></label>
+            <input type="date" id="out-movement-date" required>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="out-source-select">Select Source BOE &amp; HS Code Line <span class="req">*</span></label>
+          <select id="out-source-select" required class="select-styled">
+            <option value="">-- Choose available source inventory balance --</option>
+            <!-- Populated dynamically with available lines -->
+          </select>
+        </div>
+
+        <!-- Live Source Balance Info Card -->
+        <div class="selected-balance-box" id="selected-balance-box" style="display: none;">
+          <div class="balance-metric">
+            <span class="label">Available in Selected BOE:</span>
+            <span class="val font-mono" id="disp-avail-qty">0</span>
+            <span class="unit" id="disp-avail-uom">KG</span>
+          </div>
+          <div class="balance-sub" id="disp-source-meta">HS Code: 84091000 &bull; BOE: 000-00000000-00</div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="out-quantity">Quantity to Deduct <span class="req">*</span></label>
+            <input type="number" step="any" min="0.01" id="out-quantity" required placeholder="Enter deduction qty">
+          </div>
+          <div class="form-group">
+            <label for="out-destination">Destination / Consignee <span class="req">*</span></label>
+            <input type="text" id="out-destination" required placeholder="e.g. Dubai Cargo Village / Aircraft Maintenance">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="out-notes">Movement Reference Notes</label>
+          <input type="text" id="out-notes" placeholder="e.g. Customer Dispatch Order #SO-9921">
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn-cancel" id="btn-cancel-outgoing-modal">Cancel</button>
+          <button type="submit" class="btn-primary-blue">Confirm &amp; Deduct Stock</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ======================================================== -->
+  <!-- MODAL: VIEW DECLARATION DETAILS & LINES -->
+  <!-- ======================================================== -->
+  <div class="modal-backdrop" id="view-boe-modal" style="display: none;">
+    <div class="modal-card modal-lg">
+      <div class="modal-header">
+        <div class="modal-title-wrap">
+          <h3 class="modal-title" id="view-boe-title">Declaration Details</h3>
+          <p class="modal-sub" id="view-boe-subtitle">UAE Dubai Customs Declaration Sheet</p>
+        </div>
+        <button class="modal-close" id="btn-close-view-boe-modal">&times;</button>
+      </div>
+      <div class="modal-form">
+        <div class="boe-meta-grid" id="view-boe-meta-grid">
+          <!-- Meta tags rendered by JS -->
+        </div>
+
+        <div class="form-section-title" style="margin-top: 1rem;">Goods &amp; HS Code Items</div>
+        <div class="table-compact-wrap">
+          <table class="inventory-dash-table">
+            <thead>
+              <tr>
+                <th>ITEM #</th>
+                <th>HS CODE</th>
+                <th>GOODS DESCRIPTION</th>
+                <th>UOM</th>
+                <th>GROSS WT</th>
+                <th>ORIGINAL QTY</th>
+                <th>REMAINING QTY</th>
+                <th>STATUS</th>
+              </tr>
+            </thead>
+            <tbody id="view-boe-lines-tbody"></tbody>
+          </table>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn-primary-blue" id="btn-close-view-boe-footer">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification element -->
+  <div id="toast" class="toast"></div>
+
+  <!-- Core Application Script -->
+  <script src="app.js"></script>
+</body>
+</html>
