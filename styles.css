@@ -1023,20 +1023,17 @@ body {
   color: var(--text-light);
 }
 
-.net-badge {
+.system-status-badge {
   display: inline-flex;
   align-items: center;
-  gap: 0.4rem;
+  gap: 0.45rem;
   padding: 0.25rem 0.65rem;
   background: #0f172a;
   color: #ffffff;
   border-radius: var(--radius-full);
   font-size: 0.7rem;
   font-weight: 700;
-}
-
-.net-icon {
-  color: #00c7b7;
+  letter-spacing: 0.03em;
 }
 
 /* ==========================================================================

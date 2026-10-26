@@ -694,7 +694,7 @@ class DubaiCustomsApp {
     const container = document.getElementById("bar-chart-container");
     if (!container) return;
 
-    // Monthly representation matching the Netlify screenshot
+    // Monthly declaration activity representation
     const months = [
       { month: "May", incoming: 0, outgoing: 0 },
       { month: "Jun", incoming: 4, outgoing: 2 },
